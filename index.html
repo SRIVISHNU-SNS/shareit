@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0c" />
+  <title>nearby — private transfer</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0b0c; --panel:#121214; --surface:#171719; --line:rgba(255,255,255,.105); --muted:#8e8e94; --dim:#5c5c61; --ink:#f5f5f3; --signal:#d6ff59; --ease:cubic-bezier(.2,.8,.2,1); }
+    * { box-sizing:border-box; }
+    html, body { width:100%; min-height:100%; margin:0; overflow:hidden; background:var(--bg); }
+    body { font-family:Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--ink); -webkit-font-smoothing:antialiased; }
+    button, input { font:inherit; }
+    button { border:0; color:inherit; cursor:pointer; }
+    .app { position:relative; height:100vh; height:100dvh; overflow:hidden; isolation:isolate; }
+    .app::before { content:""; position:absolute; inset:0; z-index:-2; background:radial-gradient(70% 58% at 50% 49%, #171719 0%, var(--bg) 70%); }
+    .app::after { content:""; position:absolute; inset:0; z-index:-1; opacity:.28; background-image:radial-gradient(rgba(255,255,255,.2) .55px, transparent .7px); background-size:17px 17px; mask-image:radial-gradient(ellipse 62% 60% at 50% 48%, #000, transparent 82%); }
+    .topbar { height:72px; padding:max(20px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) 0 max(22px, env(safe-area-inset-left)); display:flex; align-items:flex-start; justify-content:space-between; }
+    .wordmark { display:flex; gap:8px; align-items:center; padding-top:1px; color:#e5e5e3; opacity:.64; font-size:13px; font-weight:620; letter-spacing:-.02em; }
+    .mark { display:grid; width:15px; height:15px; place-items:center; border:1px solid rgba(255,255,255,.64); border-radius:5px; }
+    .mark::after { content:""; width:4px; height:4px; border-radius:50%; background:currentColor; }
+    .icon-button { display:grid; place-items:center; width:35px; height:35px; margin-top:-9px; margin-right:-8px; border-radius:50%; background:transparent; color:#aaa; transition:background .2s var(--ease), color .2s var(--ease), transform .2s var(--ease); }
+    .icon-button:hover, .icon-button:focus-visible { background:rgba(255,255,255,.08); color:white; outline:none; }
+    .icon-button:active { transform:scale(.92); }
+    main { position:absolute; inset:72px 0 0; display:grid; place-items:center; padding:0 20px max(22px, env(safe-area-inset-bottom)); }
+    .workspace { width:min(780px, 100%); height:min(600px, calc(100dvh - 108px)); min-height:420px; position:relative; display:grid; place-items:center; overflow:hidden; border:1px solid var(--line); border-radius:28px; background:rgba(18,18,20,.58); box-shadow:0 28px 80px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.022); transition:border-color .2s var(--ease), background .2s var(--ease), transform .25s var(--ease), box-shadow .25s var(--ease); }
+    .workspace::before { content:""; position:absolute; inset:10px; border:1px solid rgba(255,255,255,.035); border-radius:20px; pointer-events:none; }
+    .workspace.dragging { border-color:var(--signal); background:rgba(214,255,89,.055); transform:scale(1.008); box-shadow:0 34px 90px rgba(0,0,0,.38), 0 0 0 1px rgba(214,255,89,.18); }
+    .state { position:absolute; inset:0; display:grid; place-items:center; padding:36px; opacity:0; visibility:hidden; pointer-events:none; transform:scale(.985); transition:opacity .28s var(--ease), transform .28s var(--ease), visibility 0s linear .28s; }
+    .state.active { opacity:1; visibility:visible; pointer-events:auto; transform:scale(1); transition:opacity .28s var(--ease), transform .28s var(--ease); }
+    .discovery { align-content:center; gap:22px; text-align:center; }
+    .radar { position:relative; width:132px; height:132px; margin-bottom:4px; border:1px solid rgba(255,255,255,.11); border-radius:50%; background:radial-gradient(circle at center, rgba(214,255,89,.11) 0 2px, transparent 3px), repeating-radial-gradient(circle at center, transparent 0 31px, rgba(255,255,255,.065) 32px 33px); }
+    .radar::before { content:""; position:absolute; inset:-11px; border:1px solid rgba(214,255,89,.12); border-radius:50%; animation:pulse 2.4s ease-out infinite; }
+    .radar::after { content:""; position:absolute; width:50%; height:50%; left:50%; top:0; transform-origin:bottom left; background:conic-gradient(from 0deg, rgba(214,255,89,.18), transparent 56deg); border-radius:0 100% 0 0; animation:sweep 4.4s linear infinite; }
+    @keyframes pulse { 0%,100%{ transform:scale(.95); opacity:.15;} 45%{transform:scale(1.08);opacity:.6;} }
+    @keyframes sweep { to { transform:rotate(360deg); } }
+    .device-row { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
+    .device { display:flex; align-items:center; gap:7px; padding:7px 10px 7px 7px; border:1px solid rgba(255,255,255,.11); border-radius:99px; background:rgba(255,255,255,.045); font-size:12px; font-weight:570; letter-spacing:-.01em; transition:transform .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease); }
+    .device:first-child { border-color:rgba(214,255,89,.38); }
+    .device:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.28); background:rgba(255,255,255,.08); }
+    .avatar { display:grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#262629; font-size:13px; }
+    .device:first-child .avatar { background:rgba(214,255,89,.18); }
+    .status { margin:0; color:var(--muted); font-size:13px; letter-spacing:-.01em; }
+    .status b { color:#ddd; font-weight:570; }
+    .room-bar { display:flex; align-items:center; gap:11px; padding:5px 5px 5px 13px; border:1px solid var(--line); border-radius:12px; background:#101011; }
+    .room-code { color:#d5d5d2; font-size:12px; letter-spacing:.1em; font-variant-numeric:tabular-nums; }
+    .copy { padding:7px 9px; border-radius:8px; background:#222224; color:#cfcfcb; font-size:11px; font-weight:600; transition:background .2s var(--ease), transform .2s var(--ease); }
+    .copy:hover { background:#303033; }.copy:active{transform:scale(.94)}
+    .quiet-button { padding:9px 12px; background:transparent; color:#b7b7b3; font-size:12px; font-weight:570; transition:color .2s var(--ease), transform .2s var(--ease); }
+    .quiet-button:hover { color:#fff; }.quiet-button:active {transform:scale(.96)}
+    .drop { text-align:center; }
+    .drop-icon { width:56px; height:56px; margin:0 auto 15px; display:grid; place-items:center; border:1px solid var(--signal); border-radius:18px; color:var(--signal); }
+    .drop h2 { margin:0 0 7px; font-size:23px; line-height:1.12; letter-spacing:-.045em; font-weight:580; }.drop p{margin:0;color:#aaa;font-size:13px;}
+    .transfer { align-content:center; width:min(424px,100%); gap:24px; }
+    .transfer-head { display:flex; align-items:center; justify-content:space-between; }.transfer-title { margin:0; font-size:13px; font-weight:570; color:#d8d8d4; }.transfer-percent { color:var(--signal); font-size:13px; font-weight:650; font-variant-numeric:tabular-nums; }
+    .file { min-width:0; padding:15px 16px; border:1px solid var(--line); border-radius:15px; background:rgba(0,0,0,.18); }.file-top{display:flex;align-items:center;gap:10px;min-width:0}.file-icon{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;background:rgba(214,255,89,.12);color:var(--signal);font-size:12px;font-weight:700}.file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:570}.file-meta{margin:6px 0 0 40px;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+    .meter { height:3px; overflow:hidden; border-radius:99px; background:#28282b; }.meter i { display:block; height:100%; width:0%; border-radius:inherit; background:var(--signal); box-shadow:0 0 12px rgba(214,255,89,.55); transition:width .45s var(--ease); }
+    .transfer-bottom { display:flex; justify-content:space-between; align-items:center; }.transfer-detail{margin:0;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}.cancel{padding:4px 0;background:transparent;color:#89898e;font-size:12px}.cancel:hover{color:#f2f2ee;text-decoration:underline;text-underline-offset:3px}
+    .choose { position:absolute; bottom:23px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid rgba(255,255,255,.1); border-radius:10px; background:rgba(25,25,27,.9); color:#c7c7c3; font-size:12px; white-space:nowrap; transition:transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease); }.choose:hover { transform:translateX(-50%) translateY(-2px); background:#242426; border-color:rgba(255,255,255,.21); }.choose:active{transform:translateX(-50%) scale(.96)}.choose svg{opacity:.65}
+    .back { position:absolute; bottom:23px; left:23px; padding:8px 0; color:var(--muted); background:none; font-size:12px; transition:color .2s var(--ease); }.back:hover{color:white}
+    .modal { position:absolute; inset:0; z-index:3; display:grid; place-items:center; padding:22px; background:rgba(7,7,8,.65); backdrop-filter:blur(12px); opacity:0; visibility:hidden; transition:opacity .24s var(--ease), visibility 0s linear .24s; }.modal.open{opacity:1;visibility:visible;transition:opacity .24s var(--ease)}
+    .qr-card { width:min(310px,100%); padding:18px; border:1px solid rgba(255,255,255,.15); border-radius:20px; background:#171719; box-shadow:0 26px 70px rgba(0,0,0,.45); text-align:center; transform:translateY(8px) scale(.97); transition:transform .24s var(--ease); }.modal.open .qr-card{transform:none}.qr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.qr-top strong{font-size:13px;font-weight:600}.close{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#232326;color:#b9b9b5;font-size:17px;line-height:1;transition:background .2s var(--ease)}.close:hover{background:#303034;color:#fff}
+    .qr { width:190px; height:190px; margin:0 auto 15px; padding:11px; display:grid; grid-template-columns:repeat(15,1fr); gap:2px; border-radius:12px; background:#f0f0ec; }.qr span{background:#131314;border-radius:1px}.qr span.blank{opacity:0}.qr-caption{margin:0;color:#949499;font-size:11px;line-height:1.5}.qr-caption code{color:#d7d7d3;font-family:inherit}
+    .drawer { position:absolute; z-index:4; top:12px; right:12px; width:min(340px, calc(100% - 24px)); padding:18px; border:1px solid rgba(255,255,255,.13); border-radius:18px; background:rgba(23,23,25,.94); box-shadow:0 24px 65px rgba(0,0,0,.45); backdrop-filter:blur(16px); opacity:0; visibility:hidden; transform:translateY(-8px) scale(.98); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility 0s linear .2s; }.drawer.open{opacity:1;visibility:visible;transform:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}.drawer header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.drawer h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-.02em}.drawer p{margin:0 0 13px;color:#a5a5a9;font-size:12px;line-height:1.55}.drawer p:last-child{margin-bottom:0}.security-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal)}
+    .toast { position:absolute; z-index:5; bottom:18px; left:50%; padding:8px 12px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:#242426; color:#e4e4df; font-size:12px; transform:translate(-50%, 18px); opacity:0; pointer-events:none; transition:opacity .2s var(--ease),transform .2s var(--ease); }.toast.show{transform:translate(-50%,0);opacity:1}
+    @media (max-width:560px) { .topbar{height:62px}.workspace{height:calc(100dvh - 86px);min-height:0;border-radius:22px}.workspace::before{inset:8px;border-radius:15px}.state{padding:28px 18px}.radar{width:116px;height:116px}.discovery{gap:18px}.device-row{max-width:276px}.choose{bottom:18px}.back{bottom:18px;left:19px}.transfer{gap:20px}.qr{width:176px;height:176px}.drawer{top:8px;right:8px} }
+    @media (max-height:600px) and (min-width:561px) { .workspace{height:calc(100dvh - 84px)}.radar{width:100px;height:100px}.discovery{gap:13px}.choose{bottom:16px} }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="wordmark" aria-label="nearby"><span class="mark"></span>nearby</div>
+      <button class="icon-button" id="securityButton" aria-label="Open privacy and security details" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.7v5.05M12 7.4h.01" stroke-linecap="round"/></svg></button>
+    </header>
+    <aside class="drawer" id="drawer" aria-hidden="true"><header><h2><span class="security-dot"></span>Private by design</h2><button class="close" id="closeDrawer" aria-label="Close security details">×</button></header><p>Files travel device-to-device using an encrypted WebRTC connection. Nothing is uploaded or retained here.</p><p>Keep both tabs open and awake while your transfer is running. A fallback relay may be used when direct pairing is blocked by a network.</p></aside>
+    <main>
+      <section class="workspace" id="workspace" aria-label="File sharing workspace">
+        <section class="state discovery active" id="discoveryState" aria-label="Discover nearby devices">
+          <div class="radar" aria-hidden="true"></div>
+          <div class="device-row" aria-label="Nearby devices">
+            <button class="device" data-device="Windows Laptop"><span class="avatar">💻</span>Windows Laptop</button>
+            <button class="device" data-device="iPhone"><span class="avatar">📱</span>iPhone</button>
+          </div>
+          <p class="status"><b>Ready to connect.</b> Choose a device or share your room.</p>
+          <div class="room-bar"><span class="room-code" id="roomCode">nearby.app/7K2M</span><button class="copy" id="copyLink">Copy link</button></div>
+          <button class="quiet-button" id="showQr">Show QR code</button>
+        </section>
+        <section class="state drop" id="dropState" aria-live="polite"><div><div class="drop-icon"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0L7.8 8.2M12 4l4.2 4.2M5 14.8v3.5A1.7 1.7 0 006.7 20h10.6a1.7 1.7 0 001.7-1.7v-3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h2>Drop files to stream instantly</h2><p>Your files stay on your devices.</p></div></section>
+        <section class="state transfer" id="transferState" aria-live="polite">
+          <div class="transfer-head"><h2 class="transfer-title" id="transferLabel">Streaming to Windows Laptop</h2><strong class="transfer-percent" id="percent">0%</strong></div>
+          <article class="file"><div class="file-top"><span class="file-icon" id="fileType">MP4</span><span class="file-name" id="fileName">summer-cut-final.mp4</span></div><p class="file-meta" id="fileMeta">1.84 GB · 42.6 MB/s · 00:43 remaining</p></article>
+          <div class="meter" aria-label="Transfer progress"><i id="progressBar"></i></div>
+          <div class="transfer-bottom"><p class="transfer-detail" id="transferDetail">Direct encrypted connection</p><button class="cancel" id="cancel">Cancel</button></div>
+          <button class="back" id="backToRoom">← Back to room</button>
+        </section>
+        <button class="choose" id="chooseFile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L7.8 8.2M12 4l4.2 4.2M5 14.8v3.5A1.7 1.7 0 006.7 20h10.6a1.7 1.7 0 001.7-1.7v-3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Choose files</button>
+        <input id="fileInput" type="file" hidden multiple />
+      </section>
+    </main>
+    <div class="modal" id="qrModal" role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-card"><div class="qr-top"><strong id="qrTitle">Join this room</strong><button class="close" id="closeQr" aria-label="Close QR code">×</button></div><div class="qr" id="qr" aria-label="Room QR code"></div><p class="qr-caption">Scan with the receiving device.<br><code>nearby.app/7K2M</code></p></div></div>
+    <div class="toast" id="toast" role="status">Link copied</div>
+  </div>
+  <script type="application/x-nearby-prototype">
+    const $ = (s) => document.querySelector(s);
+    const workspace = $('#workspace'), discovery = $('#discoveryState'), drop = $('#dropState'), transfer = $('#transferState');
+    const fileInput = $('#fileInput'), choose = $('#chooseFile'), toast = $('#toast');
+    let dragDepth = 0, progress = 0, transferTimer, toastTimer;
+    const code = Math.random().toString(36).slice(2, 6).toUpperCase();
+    $('#roomCode').textContent = `nearby.app/${code}`;
+    document.querySelector('.qr-caption code').textContent = `nearby.app/${code}`;
+    const pattern = Array.from({length:225}, (_, i) => ((i * 17 + Math.floor(i / 15) * 11 + code.charCodeAt(i % 4)) % 7 < 3));
+    [0, 4, 10, 14, 210, 214, 60, 64].forEach(c => { for(let r=0;r<5;r++) for(let col=0;col<5;col++) pattern[c + r * 15 + col] = (r===0||r===4||col===0||col===4||(r===2&&col===2)); });
+    $('#qr').innerHTML = pattern.map(on => `<span class="${on ? '' : 'blank'}"></span>`).join('');
+    function setState(name) { [discovery, drop, transfer].forEach(s => s.classList.remove('active')); ({discovery, drop, transfer})[name].classList.add('active'); choose.hidden = name === 'transfer'; }
+    function showToast(message) { toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1800); }
+    function formatBytes(bytes) { if (!bytes) return '1.84 GB'; const u=['B','KB','MB','GB']; const i=Math.min(Math.floor(Math.log(bytes)/Math.log(1024)),3); return `${(bytes/1024**i).toFixed(i>1?2:0)} ${u[i]}`; }
+    function startTransfer(file, device='Windows Laptop') { clearInterval(transferTimer); progress = 0; $('#fileName').textContent = file?.name || 'summer-cut-final.mp4'; $('#fileType').textContent = (file?.name.split('.').pop() || 'MP4').slice(0,4).toUpperCase(); $('#transferLabel').textContent = `Streaming to ${device}`; const size = formatBytes(file?.size); setState('transfer'); updateTransfer(size); transferTimer = setInterval(() => { progress = Math.min(100, progress + Math.max(1, Math.round((Math.random() * 5) + 2))); updateTransfer(size); if(progress === 100) { clearInterval(transferTimer); $('#transferDetail').textContent='Transfer complete · saved on receiving device'; $('#cancel').textContent='Done'; showToast('Transfer complete'); } }, 650); }
+    function updateTransfer(size) { const speed = (38 + Math.random()*11).toFixed(1); const seconds = Math.max(0, Math.ceil((100-progress)*.43)); $('#percent').textContent = `${progress}%`; $('#progressBar').style.width = `${progress}%`; $('#fileMeta').textContent = progress === 100 ? `${size} · complete` : `${size} · ${speed} MB/s · 00:${String(seconds).padStart(2,'0')} remaining`; }
+    ['dragenter','dragover'].forEach(e => document.addEventListener(e, event => { event.preventDefault(); dragDepth++; workspace.classList.add('dragging'); setState('drop'); }));
+    ['dragleave','drop'].forEach(e => document.addEventListener(e, event => { event.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(!dragDepth) { workspace.classList.remove('dragging'); if(!event.dataTransfer?.files?.length) setState('discovery'); } }));
+    document.addEventListener('drop', e => { if(e.dataTransfer.files?.length) startTransfer(e.dataTransfer.files[0]); });
+    choose.addEventListener('click', () => fileInput.click()); fileInput.addEventListener('change', e => { if(e.target.files?.length) startTransfer(e.target.files[0]); fileInput.value=''; });
+    document.querySelectorAll('.device').forEach(d => d.addEventListener('click', () => startTransfer(null, d.dataset.device)));
+    $('#cancel').addEventListener('click', () => { clearInterval(transferTimer); setState('discovery'); showToast(progress === 100 ? 'Room ready' : 'Transfer cancelled'); }); $('#backToRoom').addEventListener('click', () => { clearInterval(transferTimer); setState('discovery'); });
+    $('#showQr').addEventListener('click', () => $('#qrModal').classList.add('open')); $('#closeQr').addEventListener('click', () => $('#qrModal').classList.remove('open')); $('#qrModal').addEventListener('click', e => { if(e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+    $('#securityButton').addEventListener('click', () => { const d=$('#drawer'), is=d.classList.toggle('open'); d.setAttribute('aria-hidden', !is); $('#securityButton').setAttribute('aria-expanded',is); }); $('#closeDrawer').addEventListener('click', () => { $('#drawer').classList.remove('open'); $('#securityButton').setAttribute('aria-expanded','false'); });
+    $('#copyLink').addEventListener('click', async () => { const link=`https://nearby.app/${code}`; try { await navigator.clipboard.writeText(link); showToast('Link copied'); } catch { showToast(link); } });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') { $('#qrModal').classList.remove('open'); $('#drawer').classList.remove('open'); } });
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script defer src="./app.js"></script>
+</body>
+</html>

@@ -4,6 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { WebSocketServer, WebSocket } = require("ws");
+const QRCode = require("qrcode");
 
 const port = Number(process.env.PORT || 3000);
 const publicDir = __dirname;
@@ -27,6 +28,13 @@ const server = http.createServer((request, response) => {
   if (requested === "/health") {
     response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
     return response.end(JSON.stringify({ ok: true }));
+  }
+  if (requested === "/qr") {
+    const room = String(new URL(request.url, `http://${request.headers.host}`).searchParams.get("room") || "").toUpperCase();
+    if (!/^[A-Z0-9]{4,8}$/.test(room)) { response.writeHead(400); return response.end("Invalid room"); }
+    const origin = `${request.headers["x-forwarded-proto"] || "http"}://${request.headers.host}`;
+    response.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+    return QRCode.toFileStream(response, `${origin}/${room}`, { width: 340, margin: 1, errorCorrectionLevel: "M", color: { dark: "#111311", light: "#f1f3ed" } });
   }
   const fileName = requested === "/" || !path.extname(requested) ? "index.html" : requested.replace(/^\/+/, "");
   const safePath = path.resolve(publicDir, fileName);

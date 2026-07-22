@@ -18,8 +18,8 @@ Open `http://localhost:3000` in two browser windows. For testing across two phys
 - Terminate TLS and serve the app over HTTPS; WebSocket automatically becomes WSS.
 - Add authenticated TURN credentials (for example, coturn) to `iceServers` in `app.js`. STUN alone cannot connect every pair of networks.
 - Add rate limiting, abuse controls, telemetry that excludes file names/content, and a privacy policy before public launch.
-- The current receiver reconstructs received file chunks in browser memory. For very large files, add a streaming download strategy where the target browser supports it.
-- QR generation uses the small `qrcode` browser utility from jsDelivr. Self-host it before a production launch if you want to remove this third-party runtime request.
+- On Chromium browsers, the receiver chooses a save location and chunks stream directly to disk with the File System Access API. Browsers without that API use their normal Blob-download fallback, which can still be memory-limited for very large files.
+- The QR generator is an application dependency served from `/vendor/qrcode.min.js`; it does not call a third-party CDN at runtime.
 
 ## What is deliberately not included
 

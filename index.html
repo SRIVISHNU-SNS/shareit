@@ -28,7 +28,7 @@
 <body>
   <div class="app" id="app" data-room="idle">
     <header class="topbar"><div class="brand"><span class="brand-mark"></span>nearby</div><button class="icon" id="securityButton" aria-label="Privacy and security" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.25"/><path d="M12 10.7v5.05M12 7.4h.01" stroke-linecap="round"/></svg></button></header>
-    <aside class="drawer" id="drawer" aria-hidden="true"><header><h2><span class="security-dot"></span>Private by design</h2><button class="close" id="closeDrawer" aria-label="Close">×</button></header><p>Your file bytes go directly between the two browsers through an encrypted WebRTC connection. They are never uploaded to nearby.</p><p>On supported browsers, received files stream straight to the location you choose. Other browsers use their standard download memory.</p></aside>
+    <aside class="drawer" id="drawer" aria-hidden="true"><header><h2><span class="security-dot"></span>Private by design</h2><button class="close" id="closeDrawer" aria-label="Close">×</button></header><p>Room broadcasts are encrypted in your browser before they reach the relay. The secret lives after <code>#</code> in the invite link and is never sent to nearby.</p><p>The relay holds no file storage. On supported browsers, received files stream straight to the location you choose.</p></aside>
     <main><section class="workspace" id="workspace" aria-label="Private file sharing workspace">
       <section class="state discovery active" id="discoveryState">
         <div class="radar" id="radar" aria-hidden="true"><span class="radar-core"></span><span class="radar-ping"></span></div>
@@ -44,6 +44,6 @@
     <div class="modal" id="offerModal" role="dialog" aria-modal="true" aria-labelledby="offerTitle"><div class="dialog"><div class="dialog-top"><h2 class="dialog-title" id="offerTitle">Incoming file</h2></div><div class="offer-file"><p class="offer-name" id="offerName">—</p><p class="offer-meta" id="offerMeta">—</p><p class="offer-note" id="offerNote"></p></div><div class="offer-actions"><button class="quiet" id="declineOffer">Decline</button><button class="primary" id="acceptOffer">Accept &amp; save</button></div></div></div>
     <div class="toast" id="toast" role="status"></div>
   </div>
-  <script defer src="./app.js"></script>
+  <script defer src="/vendor/qrcode-generator.js"></script><script defer src="./app.js"></script>
 </body>
 </html>
